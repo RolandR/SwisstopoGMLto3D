@@ -29,6 +29,8 @@ function main(){
 			downloadLink.download = structure.filename+".stl";
 			downloadLink.href = objectUrl;
 			downloadLink.id = "downloadButton";
+			
+			generateStlButton.style.display = "none";
 			toolsContainer.appendChild(downloadLink);
 		};
 		generateStlButton.style.display = "block";
@@ -182,30 +184,30 @@ function GmlParser(){
 				return resultArray;
 			}
 			
-			let roof = children.find(function(x){
+			let roofs = children.filter(function(x){
 				return (x.nodeName == "bldg:boundedBy" && x.firstElementChild && x.firstElementChild.nodeName == "bldg:RoofSurface");
 			});
-			if(roof){
+			for(let roof of roofs){
 				let posLists = findNodesByName(roof.children, "gml:posList");
-				buildingItem.roofTriangles = parsePosList(posLists);
+				buildingItem.roofTriangles.push(...parsePosList(posLists));
 			}
 			
 			
-			let wall = children.find(function(x){
+			let walls = children.filter(function(x){
 				return (x.nodeName == "bldg:boundedBy" && x.firstElementChild && x.firstElementChild.nodeName == "bldg:WallSurface");
 			});
-			if(wall){
+			for(let wall of walls){
 				let posLists = findNodesByName(wall.children, "gml:posList");
-				buildingItem.wallTriangles = parsePosList(posLists);
+				buildingItem.wallTriangles.push(...parsePosList(posLists));
 			}
 			
 			
-			let ground = children.find(function(x){
+			let grounds = children.filter(function(x){
 				return (x.nodeName == "bldg:boundedBy" && x.firstElementChild && x.firstElementChild.nodeName == "bldg:GroundSurface");
 			});
-			if(ground){
+			for(let ground of grounds){
 				let posLists = findNodesByName(ground.children, "gml:posList");
-				buildingItem.groundTriangles = parsePosList(posLists);
+				buildingItem.groundTriangles.push(...parsePosList(posLists));
 			}
 			
 			structure.buildings.push(buildingItem);
