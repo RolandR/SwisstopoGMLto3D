@@ -191,7 +191,6 @@ button:active, #downloadButton:active .uploadLabel:active{
 }
 
 #fileInformation{
-	flex: 1;
 	width: 100%;
 	padding: 0px 20px;
 	flex-shrink: 1;

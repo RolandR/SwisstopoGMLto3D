@@ -12,7 +12,7 @@ function main(){
 	let toolsContainer = document.getElementById("toolsContainer");
 	let generateStlButton = document.getElementById("generateStlButton");
 	
-	fetch("sefinen.gml")
+	fetch("biel.gml")
 	.then((response) => response.text())
 	.then((text) => {
 		let structure = parser.parseGmlText(text);
@@ -36,6 +36,47 @@ function main(){
 }
 
 function GmlParser(){
+			
+	function findNodesByName(nodeList, nodeName){
+		/*
+			Recursively find nodes by nodeName, including results which are nested inside each other.
+			
+			The reason why we're not using something like querySelectorAll() is that this is a **LOT** faster
+		*/
+		
+		let foundElementsList = [];
+		
+		for(let node of nodeList){
+			if(node.nodeName == nodeName){
+				foundElementsList.push(node);
+			}
+			
+			foundElementsList.push(...findNodesByName(node.children, nodeName));
+		}
+		
+		return foundElementsList;
+	}
+	
+	function findNodesByNameShallow(nodeList, nodeName){
+		/*
+			Recursively find nodes by nodeName.
+			This will not match elements nested within other matches.
+			
+			The reason why we're not using something like querySelectorAll() is that this is a **LOT** faster
+		*/
+		
+		let foundElementsList = [];
+		
+		for(let node of nodeList){
+			if(node.nodeName == nodeName){
+				foundElementsList.push(node);
+			} else {
+				foundElementsList.push(...findNodesByNameShallow(node.children, nodeName));
+			}
+		}
+		
+		return foundElementsList;
+	}
 	
 	function parseGmlText(text){
 		
@@ -44,23 +85,35 @@ function GmlParser(){
 		const parser = new DOMParser();
 		const doc = parser.parseFromString(text, "text/xml");
 		
-		let buildings = doc.getElementsByTagName("bldg:Building");
+		console.log(doc.documentElement.children);
+		
+		let buildings = findNodesByNameShallow(doc.documentElement.children, "bldg:Building");
 		
 		console.log("Found "+buildings.length+" buildings.");
 		
 		let structure = {
-			filename: "sefinen.gml",
+			filename: "biel.gml",
 			buildings: [],
 		};
 		
-		let lowerCorner = doc.querySelector('*|lowerCorner').innerHTML;
+		let lowerCorner = "";
+		let upperCorner = "";
+		
+		for(let el of doc.documentElement.children){
+			if(el.nodeName == "gml:boundedBy"){
+				lowerCorner = findNodesByNameShallow(el.children, "gml:lowerCorner")[0].innerHTML;
+				upperCorner = findNodesByNameShallow(el.children, "gml:upperCorner")[0].innerHTML;
+				
+				break;
+			}
+		}
+		
 		lowerCorner = lowerCorner.trim().replace(/\s+/, " ");
 		lowerCorner = lowerCorner.split(" ");
 		lowerCorner = lowerCorner.map(function(x){
 			return parseFloat(x);
 		});
 		
-		let upperCorner = doc.querySelector('*|upperCorner').innerHTML;
 		upperCorner = upperCorner.trim().replace(/\s+/, " ");
 		upperCorner = upperCorner.split(" ");
 		upperCorner = upperCorner.map(function(x){
@@ -79,6 +132,8 @@ function GmlParser(){
 		
 		for(let building of buildings){
 			
+			let children = Array.from(building.children);
+			
 			let buildingItem = {
 				egid: null,
 				roofTriangles: [],
@@ -89,12 +144,14 @@ function GmlParser(){
 			
 			let gmlId = building.attributes["gml:id"].value;
 			
-			// This query looks super weird because of namespaces. *|Building matches Building tags of any namespace, including CityGML's bldg:Building.
-			// I used wildcard namespaces because from what I've found out, querySelector() doesn't completely support namespaces?
-			let egidEl = doc.querySelector('*|Building[*|id="'+gmlId+'"]>*|intAttribute[name="EGID"]>*|value');
+			let egidEl = children.find(function(x){
+				try {
+					return(x.attributes.name.value == "EGID");
+				} catch {}
+			});
 			let egid = null;
-			if(egidEl){
-				egid = egidEl.innerHTML;
+			if(egidEl && egidEl.firstElementChild){
+				egid = egidEl.firstElementChild.innerHTML;
 			} else {
 				console.warn("Encountered building without EGID");
 			}
@@ -125,15 +182,31 @@ function GmlParser(){
 				return resultArray;
 			}
 			
-			let roofPosLists = doc.querySelectorAll('*|Building[*|id="'+gmlId+'"]>*|boundedBy>*|RoofSurface *|exterior *|posList');
-			buildingItem.roofTriangles = parsePosList(roofPosLists);
+			let roof = children.find(function(x){
+				return (x.nodeName == "bldg:boundedBy" && x.firstElementChild && x.firstElementChild.nodeName == "bldg:RoofSurface");
+			});
+			if(roof){
+				let posLists = findNodesByName(roof.children, "gml:posList");
+				buildingItem.roofTriangles = parsePosList(posLists);
+			}
 			
-			let wallPosLists = doc.querySelectorAll('*|Building[*|id="'+gmlId+'"]>*|boundedBy>*|WallSurface *|exterior *|posList');
-			buildingItem.wallTriangles = parsePosList(wallPosLists);
 			
-			let groundPosLists = doc.querySelectorAll('*|Building[*|id="'+gmlId+'"]>*|boundedBy>*|GroundSurface *|exterior *|posList');
-			buildingItem.groundTriangles = parsePosList(groundPosLists);
+			let wall = children.find(function(x){
+				return (x.nodeName == "bldg:boundedBy" && x.firstElementChild && x.firstElementChild.nodeName == "bldg:WallSurface");
+			});
+			if(wall){
+				let posLists = findNodesByName(wall.children, "gml:posList");
+				buildingItem.wallTriangles = parsePosList(posLists);
+			}
 			
+			
+			let ground = children.find(function(x){
+				return (x.nodeName == "bldg:boundedBy" && x.firstElementChild && x.firstElementChild.nodeName == "bldg:GroundSurface");
+			});
+			if(ground){
+				let posLists = findNodesByName(ground.children, "gml:posList");
+				buildingItem.groundTriangles = parsePosList(posLists);
+			}
 			
 			structure.buildings.push(buildingItem);
 			
@@ -254,6 +327,8 @@ function Renderer(canvasContainer){
 		
 		let scale = Math.min(canvas.width/structure.spans[0], canvas.height/structure.spans[1]);
 		
+		let drawingHeight = structure.spans[1]*scale;
+		
 		let drawPositions = new Float32Array(9);
 		
 		for(let building of structure.buildings){
@@ -261,7 +336,7 @@ function Renderer(canvasContainer){
 				
 				for(i = 0; i < triangle.length; i+= 3){
 					drawPositions[i  ] = (triangle[i  ] - structure.lowerCorner[0])*scale;
-					drawPositions[i+1] = (triangle[i+1] - structure.lowerCorner[1])*scale;
+					drawPositions[i+1] = drawingHeight-(triangle[i+1] - structure.lowerCorner[1])*scale;
 					drawPositions[i+2] = triangle[i+2];
 				}
 				
