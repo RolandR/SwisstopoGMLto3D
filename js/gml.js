@@ -1,65 +1,60 @@
 
+
+const pMon = new ProgressMonitor(document.body, {
+	itemsCount: 3,
+	title: "Converting..."
+});
+
 main();
 
 
 function main(){
 	
-	let canvasContainer = document.getElementById("canvasContainer");
+	const canvasContainer = document.getElementById("canvasContainer");
 	
-	let parser = new GmlParser();
-	let renderer = new Renderer(canvasContainer);
+	const parser = new GmlParser();
+	const renderer = new Renderer(canvasContainer);
 	
-	let toolsContainer = document.getElementById("toolsContainer");
-	let generateStlButton = document.getElementById("generateStlButton");
+	const toolsContainer = document.getElementById("toolsContainer");
+	const generateStlButton = document.getElementById("generateStlButton");
+	const fileInput = document.getElementById("fileUpload");
+	const fileInputLabel = document.getElementById("fileUploadButton");
 	
-	fetch("biel.gml")
-	.then((response) => response.text())
-	.then((text) => {
-		let structure = parser.parseGmlText(text);
-		renderer.drawBuildings(structure);
+	fileInput.onchange = function(e){
+		e.preventDefault();
 		
-		generateStlButton.onclick = function(){
-			let stl = parser.generateStl(structure);
+		fileInputLabel.style.display = "none";
+		
+		parser.loadFile(fileInput.files[0]).then(function(structure){
+			pMon.postMessage("Rendering...").then(function(){
+				renderer.drawBuildings(structure);
+				pMon.postMessage("Done!", "success");
+				pMon.finish(0, 500);
+			});
 			
-			let blob = new Blob([stl.buffer], {type: "model/stl"});
-			let objectUrl = URL.createObjectURL(blob);
-			
-			let downloadLink = document.createElement("a");
-			downloadLink.innerHTML = "Download STL";
-			downloadLink.download = structure.filename+".stl";
-			downloadLink.href = objectUrl;
-			downloadLink.id = "downloadButton";
-			
-			generateStlButton.style.display = "none";
-			toolsContainer.appendChild(downloadLink);
-		};
-		generateStlButton.style.display = "block";
-	});
+			generateStlButton.onclick = function(){
+				let stl = parser.generateStl(structure);
+				
+				let blob = new Blob([stl.buffer], {type: "model/stl"});
+				let objectUrl = URL.createObjectURL(blob);
+				
+				let downloadLink = document.createElement("a");
+				downloadLink.innerHTML = "Download STL";
+				downloadLink.download = structure.filename+".stl";
+				downloadLink.href = objectUrl;
+				downloadLink.id = "downloadButton";
+				
+				generateStlButton.style.display = "none";
+				toolsContainer.appendChild(downloadLink);
+			};
+			generateStlButton.style.display = "block";
+		});
+	}
 }
 
 function GmlParser(){
-			
-	function findNodesByName(nodeList, nodeName){
-		/*
-			Recursively find nodes by nodeName, including results which are nested inside each other.
-			
-			The reason why we're not using something like querySelectorAll() is that this is a **LOT** faster
-		*/
-		
-		let foundElementsList = [];
-		
-		for(let node of nodeList){
-			if(node.nodeName == nodeName){
-				foundElementsList.push(node);
-			}
-			
-			foundElementsList.push(...findNodesByName(node.children, nodeName));
-		}
-		
-		return foundElementsList;
-	}
 	
-	function findNodesByNameShallow(nodeList, nodeName){
+	function findNodesByName(nodeList, nodeName){
 		/*
 			Recursively find nodes by nodeName.
 			This will not match elements nested within other matches.
@@ -73,28 +68,84 @@ function GmlParser(){
 			if(node.nodeName == nodeName){
 				foundElementsList.push(node);
 			} else {
-				foundElementsList.push(...findNodesByNameShallow(node.children, nodeName));
+				foundElementsList.push(...findNodesByName(node.children, nodeName));
 			}
 		}
 		
 		return foundElementsList;
 	}
 	
-	function parseGmlText(text){
+	async function loadFile(file){
 		
-		console.log("Parsing GML file...");
+		const reader = new FileReader();
+		
+		await pMon.start();
+		await pMon.postMessage("Loading file from disk...");
+		
+		reader.addEventListener("progress", function(e){
+			let progress = e.loaded/e.total;
+			pMon.updateProgress(progress);
+		});
+		
+		let readFile = new Promise((resolve, reject) => {
+			reader.onload = function(){
+				resolve(reader.result);
+			};
+		});
+		
+		reader.readAsText(file);
+		
+		let loadedFile = await readFile;
+		
+		await pMon.updateProgress(1);
+		await pMon.finishItem();
+		
+		return await parseGmlFile(file, loadedFile);
+		
+	}
+	
+	function parsePosList(posList){
+		let resultArray = [];
+		
+		for(let p of posList){
+			let positions = p.innerHTML;
+			positions = positions.trim().replace(/\s+/, " ");
+			positions = positions.split(" ");
+			positions = positions.map(function(x){
+				return parseFloat(x);
+			});
+			positions = new Float32Array(positions);
+			if(positions.length != 12){
+				console.error("Ring in building "+id+" is not a triangle. This is allowed in CityGML, but I expected SwissTopo to export their buildings using only triangles...")
+			} else {
+				positions = positions.slice(0, 9); // remove the last point, as it's the same as the first
+				resultArray.push(positions);
+			}
+		}
+		
+		return resultArray;
+	}
+	
+	async function parseGmlFile(file, text){
+		
+		const filename = file.name.substring(0, file.name.length-4); // this assumes the name has a three-letter file extension, like .gml
+		
+		await pMon.postMessage("Parsing XML...");
 		
 		const parser = new DOMParser();
-		const doc = parser.parseFromString(text, "text/xml");
+		const doc = await parser.parseFromString(text, "text/xml");
 		
-		console.log(doc.documentElement.children);
+		await pMon.updateProgress(1);
+		await pMon.finishItem();
 		
-		let buildings = findNodesByNameShallow(doc.documentElement.children, "bldg:Building");
+		await pMon.postMessage("Finding buildings...");
+		
+		let buildings = findNodesByName(doc.documentElement.children, "bldg:Building");
 		
 		console.log("Found "+buildings.length+" buildings.");
 		
 		let structure = {
-			filename: "biel.gml",
+			filename: filename,
 			buildings: [],
 		};
 		
@@ -103,8 +154,8 @@ function GmlParser(){
 		
 		for(let el of doc.documentElement.children){
 			if(el.nodeName == "gml:boundedBy"){
-				lowerCorner = findNodesByNameShallow(el.children, "gml:lowerCorner")[0].innerHTML;
-				upperCorner = findNodesByNameShallow(el.children, "gml:upperCorner")[0].innerHTML;
+				lowerCorner = findNodesByName(el.children, "gml:lowerCorner")[0].innerHTML;
+				upperCorner = findNodesByName(el.children, "gml:upperCorner")[0].innerHTML;
 				
 				break;
 			}
@@ -132,12 +183,20 @@ function GmlParser(){
 		structure.upperCorner = upperCorner;
 		structure.spans = spans;
 		
-		for(let building of buildings){
+		let buildingsWithoutEgid = 0;
+		
+		await pMon.postMessage("Processing buildings...", "info", buildings.length);
+		
+		let buildingsProcessed = 0;
+		
+		for(let b in buildings){
+			
+			let building = buildings[b];
 			
 			let children = Array.from(building.children);
 			
 			let buildingItem = {
-				egid: null,
+				id: null,
 				roofTriangles: [],
 				wallTriangles: [],
 				groundTriangles: []
@@ -151,38 +210,17 @@ function GmlParser(){
 					return(x.attributes.name.value == "EGID");
 				} catch {}
 			});
-			let egid = null;
+			let id = null;
 			if(egidEl && egidEl.firstElementChild){
-				egid = egidEl.firstElementChild.innerHTML;
+				id = "EGID_"+egidEl.firstElementChild.innerHTML;
 			} else {
-				console.warn("Encountered building without EGID");
+				id = "building_without_egid_"+buildingsWithoutEgid;
+				buildingsWithoutEgid++;
 			}
 			
-			buildingItem.egid = egid;
+			buildingItem.id = id;
 			
-			console.log("Processing building with EGID "+egid+"...");
-			
-			function parsePosList(posList){
-				let resultArray = [];
-				
-				for(let p of posList){
-					let positions = p.innerHTML;
-					positions = positions.trim().replace(/\s+/, " ");
-					positions = positions.split(" ");
-					positions = positions.map(function(x){
-						return parseFloat(x);
-					});
-					positions = new Float32Array(positions);
-					if(positions.length != 12){
-						console.error("Ring in building "+egid+" is not a triangle. This is allowed in CityGML, but I expected SwissTopo to export their buildings using only triangles...")
-					} else {
-						positions = positions.slice(0, 9); // remove the last point, as it's the same as the first
-						resultArray.push(positions);
-					}
-				}
-				
-				return resultArray;
-			}
+			//console.log("Processing building "+id+"...");
 			
 			let roofs = children.filter(function(x){
 				return (x.nodeName == "bldg:boundedBy" && x.firstElementChild && x.firstElementChild.nodeName == "bldg:RoofSurface");
@@ -211,6 +249,9 @@ function GmlParser(){
 			}
 			
 			structure.buildings.push(buildingItem);
+			
+			buildingsProcessed++;
+			await pMon.updateCount(buildingsProcessed);
 			
 		}
 		
@@ -303,8 +344,9 @@ function GmlParser(){
 	}
 	
 	return {
-		parseGmlText: parseGmlText,
-		generateStl: generateStl
+		loadFile: loadFile,
+		parseGmlFile: parseGmlFile,
+		generateStl: generateStl,
 	};
 }
 
