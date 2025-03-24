@@ -115,10 +115,6 @@ td.number, th.number{
 
 #renderCanvas{
 	background-color: #000;
-	background-color: #000000;
-	background-image: url('../img/noise.png');
-	background-size: 512px 512px;
-	image-rendering: pixelated;
 }
 
 h1{
