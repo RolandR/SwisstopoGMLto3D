@@ -1,0 +1,28 @@
+<!doctype html>
+<html allowfullscreen>
+	<head>
+		<meta charset="utf-8" /> 
+		<title>
+			CityGML things
+		</title>
+		<link rel="stylesheet" type="text/css" media="all" href="./css/style.css" /> 
+	</head>
+	<body>
+		<main>
+			<div id="menu">
+				<h1>CityGML things</h1>
+				<label id="fileUploadButton" class="uploadLabel" for="fileUpload">Select file...<input type="file" id="fileUpload" accept=".gml"></label>
+				<div id="fileInformation">
+				
+				</div>
+				<div id="toolsContainer">
+					<button id="processFileButton">Process</button>
+				</div>
+			</div>
+			<div id="canvasContainer">
+				<button id="enableRenderingButton">Enable Rendering</button>
+			</div>
+		</main>
+	</body>
+	<script type="text/javascript" src="./js/gml.js"></script>
+</html>

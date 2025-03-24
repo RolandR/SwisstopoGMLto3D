@@ -1,0 +1,384 @@
+*{
+	margin: 0px;
+	padding: 0px;
+	border: none;
+	box-sizing: border-box;
+}
+
+body, html{
+	height: 100%;
+}
+
+body{
+	font-family: sans-serif;
+	background-color: #333;
+	color: #f0f0f0;
+	font-size: 14px;
+	overflow-y: hidden;
+}
+
+main{
+	display: flex;
+	flex-direction: row;
+	height: 100%;
+}
+
+#upperHalf{
+	flex-basis: 60%;
+	display: flex;
+	box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.5);
+	overflow: hidden;
+}
+
+#lowerHalf{
+	flex-basis: 40%;
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	overflow-y: hidden;
+}
+
+#lowerHalf > *{
+	overflow-y: auto;
+}
+
+#largestMeshes{
+	flex: 1;
+	padding: 20px;
+}
+
+#largestMeshes table{
+	border-collapse: collapse;
+}
+
+#largestMeshes td, th{
+	padding: 3px 10px;
+}
+
+#largestMeshes tbody>tr:nth-child(odd){
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+#largestMeshes caption>h2{
+	text-align: left;
+	margin-bottom: 5px;
+}
+
+th{
+	text-align: left;
+}
+
+td.number, th.number{
+	text-align: right;
+}
+
+#materials{
+	flex: 1;
+	padding: 20px;
+}
+
+.materialProperties{
+	display: flex;
+	flex-direction: row;
+	color: #999;
+}
+
+.materialProperties>div{
+	flex: 1;
+}
+
+.colorSwab{
+	image-rendering: pixelated;
+}
+
+.material{
+	border: 1px rgba(255, 255, 255, 0.1) solid;
+	margin: 5px;
+	padding: 5px;
+	border-radius: 5px;
+}
+
+#menu{
+	width: 400px;
+	padding: 10px 10px 20px 10px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+#canvasContainer{
+	flex: 1;
+	overflow: hidden;
+	background-color: #040;
+	position: relative;
+}
+
+#renderCanvas{
+	background-color: #000;
+	background-color: #000000;
+	background-image: url('../img/noise.png');
+	background-size: 512px 512px;
+	image-rendering: pixelated;
+}
+
+h1{
+	font-weight: normal;
+	font-size: 40px;
+	margin-bottom: 10px;
+	color: #fff
+}
+
+h2{
+	color: #fff;
+	margin-bottom: 20px;
+}
+
+button, #downloadButton, .uploadLabel{
+	border: 1px #000 solid;
+	display: block;
+	text-align: center;
+	background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.3));
+	background-color: #111;
+	color: #fff;
+	text-shadow: 1px 1px 0px #000;
+	border-radius: 5px;
+	cursor: pointer;
+	text-decoration: none;
+	margin-top: 15px;
+}
+
+button:hover, #downloadButton:hover, .uploadLabel:hover{
+	background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.1));
+}
+
+button:active, #downloadButton:active .uploadLabel:active{
+	background-image: linear-gradient(to top, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.1));
+}
+
+#processFileButton, #fileUploadButton, #downloadButton, #enableRenderingButton{
+	width: 200px;
+	height: 40px;
+	font-size: 20px;
+	line-height: 37px;
+}
+
+#fileUploadButton, #downloadButton, #enableRenderingButton, #processFileButton{
+	background-color: #fa0;
+}
+
+#processFileButton{
+	display: none;
+}
+
+#enableRenderingButton{
+	position: absolute;
+	top: calc(50% - 20px);
+	left: calc(50% - 100px);
+	display: none;
+}
+
+#downloadButton.fresh{
+	box-shadow: 0px 0px 50px rgba(255, 200, 0, 0.5);
+}
+
+#downloadButton{
+	box-shadow: 0px 0px 0px rgba(255, 200, 0, 0.0);
+	transition: box-shadow 2s;
+}
+
+.uploadLabel>input{
+	visibility: hidden;
+}
+
+#fileUpload{
+	
+}
+
+#fileInformation{
+	flex: 1;
+	width: 100%;
+	padding: 0px 20px;
+	flex-shrink: 1;
+	overflow-y: auto;
+}
+
+#cameraZInput, #offsetYInput{
+	position: absolute;
+	width: 100%;
+	top: 30px;
+}
+
+#offsetYInput{
+	top: 60px;
+}
+
+/*#structureContainer{
+	padding-top: 40px;
+}
+
+.info{
+	border: 1px #000 solid;
+	margin: 5px 10px;
+	background-image: linear-gradient(to bottom, rgba(20, 60, 20, 0.4), rgba(0, 40, 0, 0.4));
+	padding: 5px;
+}
+
+.sceneInfo, .nodeInfo{
+	background-image: linear-gradient(to bottom, rgba(60, 60, 20, 0.4), rgba(40, 40, 0, 0.4));
+}
+
+.nodeInfo{
+	margin: 2px 10px;
+	padding: 2px 5px;
+	line-height: 1.3em;
+}
+
+.meshInfo, .primitiveInfo{
+	background-image: linear-gradient(to bottom, rgba(60, 20, 60, 0.4), rgba(40, 0, 40, 0.4));
+}
+
+.primitiveInfo{
+	margin: 2px 10px;
+	padding: 2px 5px;
+	line-height: 1.3em;
+}
+
+h2{
+	font-size: 20px;
+}
+
+h3{
+	font-size: 14px;
+}*/
+
+#frameCounter{
+	position: absolute;
+	bottom: 0px;
+	right: 0px;
+	width: 300px;
+	font-size: 40px;
+	color: #0f0;
+	font-family: monospace;
+	text-align: right;
+	text-shadow: #000 3px 3px;
+	margin: 20px;
+}
+
+
+/* =========== Progress Monitor ============= */
+
+.loadingStatus{
+	display: flex;
+	flex-direction: column;
+	position: absolute;
+	width: 400px;
+	text-align: left;
+	padding: 30px;
+	height: 300px;
+	left: calc(50% - 200px);
+	top: calc(50% - 150px);
+	background-color: #333;
+	border: 1px #111111 solid;
+	opacity: 1;
+	transition: opacity;
+	transition-duration: 500ms;
+	transition-timing-function: ease-in;
+}
+
+.loadingStatus.fading{
+	opacity: 0;
+}
+
+.progressTitle{
+	display: block;
+	font-size: 20px;
+	margin-bottom: 15px;
+}
+
+.loadingBarContainer{
+	height: 15px;
+	background-color: #292929;
+	border: 1px #111111 solid;
+	width: 100%;
+	margin-bottom: 15px;
+}
+
+.loadingBar{
+	width: 0%;
+	height: 100%;
+	background-color: #fa0;
+	background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(0, 0, 0, 0.4));
+	/*transition: width;
+	transition-duration: 250ms;
+	transition-timing-function: linear;*/
+}
+
+.progressItemsContainer{
+	display: flex;
+	justify-content: space-between;
+	flex-direction: row;
+	width: 100%;
+	margin-bottom: 15px;
+}
+
+.progressItem{
+	border: 1px #000 solid;
+	height: 30px;
+	width: 30px;
+	background-color: #292929;
+}
+
+.progressItem.active{
+	border: 1px #000 solid;
+	background-color: #715a2d;
+	animation: 1s infinite alternate linear pulsate;
+}
+
+@keyframes pulsate {
+	from {
+		background-color: #715a2d;
+		box-shadow: rgba(255, 255, 255, 0.2) 0px 0px 0px;
+	}
+
+	to {
+		background-color: #9b7a37;
+		box-shadow: rgba(255, 255, 255, 0.4) 0px 0px 10px;
+	}
+}
+
+.progressItem.done{
+	border: 1px #000 solid;
+	background-color: #fa0;
+	background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(0, 0, 0, 0.4));
+}
+
+.loadingContent{
+	overflow-y: auto;
+}
+
+.progressMessage{
+	display: block;
+}
+
+.progressMessage.info{
+	color: #888;
+}
+
+.progressMessage.info:first-child{
+	color: #fff;
+}
+
+.progressMessage.warn{
+	color: #fa0;
+}
+
+.progressMessage.error{
+	color: #f33;
+	font-weight: bold;
+}
+
+.progressMessage.success{
+	color: #fff;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
