@@ -9,11 +9,29 @@ function main(){
 	let parser = new GmlParser();
 	let renderer = new Renderer(canvasContainer);
 	
+	let toolsContainer = document.getElementById("toolsContainer");
+	let generateStlButton = document.getElementById("generateStlButton");
+	
 	fetch("sefinen.gml")
 	.then((response) => response.text())
 	.then((text) => {
 		let structure = parser.parseGmlText(text);
 		renderer.drawBuildings(structure);
+		
+		generateStlButton.onclick = function(){
+			let stl = parser.generateStl(structure);
+			
+			let blob = new Blob([stl.buffer], {type: "model/stl"});
+			let objectUrl = URL.createObjectURL(blob);
+			
+			let downloadLink = document.createElement("a");
+			downloadLink.innerHTML = "Download STL";
+			downloadLink.download = structure.filename+".stl";
+			downloadLink.href = objectUrl;
+			downloadLink.id = "downloadButton";
+			toolsContainer.appendChild(downloadLink);
+		};
+		generateStlButton.style.display = "block";
 	});
 }
 
@@ -31,7 +49,8 @@ function GmlParser(){
 		console.log("Found "+buildings.length+" buildings.");
 		
 		let structure = {
-			buildings: []
+			filename: "sefinen.gml",
+			buildings: [],
 		};
 		
 		let lowerCorner = doc.querySelector('*|lowerCorner').innerHTML;
@@ -98,7 +117,7 @@ function GmlParser(){
 					if(positions.length != 12){
 						console.error("Ring in building "+egid+" is not a triangle. This is allowed in CityGML, but I expected SwissTopo to export their buildings using only triangles...")
 					} else {
-						positions = positions.slice(0, 8); // remove the last point, as it's the same as the first
+						positions = positions.slice(0, 9); // remove the last point, as it's the same as the first
 						resultArray.push(positions);
 					}
 				}
@@ -123,8 +142,94 @@ function GmlParser(){
 		return structure;
 	}
 	
+	function generateStl(structure){
+		let triangles = [];
+		
+		for(let building of structure.buildings){
+			triangles.push(...building.roofTriangles);
+			triangles.push(...building.wallTriangles);
+			triangles.push(...building.groundTriangles);
+		}
+		
+		let scale = Math.max(structure.spans[0], structure.spans[1], structure.spans[2]);
+		console.log("Scale: 1/"+scale);
+		scale = 1/scale;
+		
+		
+		for(let t in triangles){
+			for(let i = 0; i < triangles[t].length; i+=3){
+				triangles[t][i+0] = (triangles[t][i+0] - structure.lowerCorner[0])*scale;
+				triangles[t][i+1] = (triangles[t][i+1] - structure.lowerCorner[1])*scale;
+				triangles[t][i+2] = (triangles[t][i+2] - structure.lowerCorner[2])*scale;
+			}
+		}
+		
+		console.log(triangles);
+		
+		const numTriangles = triangles.length;
+		const sizeBytes = 84+(numTriangles*50);
+		const buffer = new ArrayBuffer(sizeBytes);
+		const view = new DataView(buffer);
+		
+		for(let i = 0; i < 80; i++){
+			view.setUint8(i, 0);
+		}
+		view.setUint32(80, numTriangles, true);
+		
+		let text = structure.filename;
+		let utf8Encode = new TextEncoder();
+		let textArray = utf8Encode.encode(text);
+		for(let i in textArray){
+			view.setUint8(i, textArray[i]);
+			if(i == 79){
+				break;
+			}
+		}
+		
+		let byteOffset = 84;
+		
+		for(let i = 0; i < triangles.length; i++){
+			
+			// Normal vector
+			view.setFloat32(byteOffset+0, 0);
+			view.setFloat32(byteOffset+4, 0);
+			view.setFloat32(byteOffset+8, 0);
+			byteOffset += 12;
+			
+			// Point 0
+			view.setFloat32(byteOffset+0, triangles[i][0], true);
+			view.setFloat32(byteOffset+4, triangles[i][1], true);
+			view.setFloat32(byteOffset+8, triangles[i][2], true);
+			byteOffset += 12;
+			
+			// Point 1
+			view.setFloat32(byteOffset+0, triangles[i][3], true);
+			view.setFloat32(byteOffset+4, triangles[i][4], true);
+			view.setFloat32(byteOffset+8, triangles[i][5], true);
+			byteOffset += 12;
+			
+			// Point 2
+			view.setFloat32(byteOffset+0, triangles[i][6], true);
+			view.setFloat32(byteOffset+4, triangles[i][7], true);
+			view.setFloat32(byteOffset+8, triangles[i][8], true);
+			byteOffset += 12;
+			
+			// Attribute byte count (always 0)
+			view.setUint16(byteOffset, 0);
+			byteOffset += 2;
+			
+		}
+		
+		console.log("byteOffset: "+byteOffset);
+		console.log("calculated: "+numTriangles+" Triangles, "+sizeBytes+" Bytes");
+		
+		return view;
+		
+	}
+	
 	return {
-		parseGmlText: parseGmlText
+		parseGmlText: parseGmlText,
+		generateStl: generateStl
 	};
 }
 
