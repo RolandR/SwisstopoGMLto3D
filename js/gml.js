@@ -91,6 +91,12 @@ function GmlParser(){
 			reader.onload = function(){
 				resolve(reader.result);
 			};
+			reader.onerror = function(e){
+				pMon.postMessage("Couldn't load file.", "error");
+				console.log(e);
+				console.log(reader.error);
+				reject(e);
+			};
 		});
 		
 		reader.readAsText(file);
@@ -126,11 +132,45 @@ function GmlParser(){
 		return resultArray;
 	}
 	
+	async function parseXML(text){
+		
+		const url = URL.createObjectURL(new Blob([text], {'type': 'text/xml'}));
+		let cleanup = () => { URL.revokeObjectURL(url); }
+		
+		return new Promise((accept, reject) => {
+			const xhr = new XMLHttpRequest();
+			xhr.open('GET', url);
+			xhr.overrideMimeType('text/xml');
+			xhr.responseType = 'document';
+		
+			xhr.onload = () => {
+				accept(xhr.responseXML);
+			};
+			
+			xhr.onprogress = function(e){
+				let progress = e.loaded/e.total;
+				pMon.updateProgress(progress);
+			};
+			
+			xhr.onabort = xhr.onerror = (e) => {
+				pMon.postMessage("Couldn't parse xml.", "error");
+				console.log(e);
+				reject(e);
+			};
+			
+			xhr.onloadend = cleanup;
+			
+			xhr.send(null);
+		});
+	}
+	
 	async function parseGmlFile(file, text){
 		
 		const filename = file.name.substring(0, file.name.length-4); // this assumes the name has a three-letter file extension, like .gml
 		
 		await pMon.postMessage("Parsing XML...");
+		
+		//const doc = await parseXML(text);
 		
 		const parser = new DOMParser();
 		const doc = await parser.parseFromString(text, "text/xml");
@@ -141,6 +181,8 @@ function GmlParser(){
 		await pMon.postMessage("Finding buildings...");
 		
 		let buildings = findNodesByName(doc.documentElement.children, "bldg:Building");
+		
+		await pMon.postMessage("Finding metadata...");
 		
 		console.log("Found "+buildings.length+" buildings.");
 		
@@ -280,8 +322,6 @@ function GmlParser(){
 			}
 		}
 		
-		console.log(triangles);
-		
 		const numTriangles = triangles.length;
 		const sizeBytes = 84+(numTriangles*50);
 		const buffer = new ArrayBuffer(sizeBytes);
@@ -366,8 +406,6 @@ function Renderer(canvasContainer){
 	
 	
 	function drawBuildings(structure){
-		
-		console.log("Rendering...");
 		
 		let scale = Math.min(canvas.width/structure.spans[0], canvas.height/structure.spans[1]);
 		
