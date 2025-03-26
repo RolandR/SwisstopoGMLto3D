@@ -3,25 +3,100 @@
 	<head>
 		<meta charset="utf-8" /> 
 		<title>
-			CityGML things
+			CityGML Converter
 		</title>
 		<link rel="stylesheet" type="text/css" media="all" href="./css/style.css" /> 
 	</head>
 	<body>
-		<main>
-			<div id="menu">
-				<h1>CityGML things</h1>
+		<main aria-labelledby="title">
+			<section id="menu">
+				<header>
+					<h1 id="title">CityGML Converter</h1>
+					<p>This tool converts CityGML files from the Swisstopo <a target="_blank" href="https://www.swisstopo.admin.ch/en/landscape-model-swissbuildings3d-3-0-beta">swissBUILDINGS3D 3.0</a> dataset to STL.
+					Other CityGML files might also work but probably won't, as this tool doesn't implement the full CityGML standard.</p>
+				</header>
 				<label id="fileUploadButton" class="uploadLabel" for="fileUpload">Select file...<input type="file" id="fileUpload" accept=".gml"></label>
-				<div id="fileInformation">
-				
+				<div id="fileInfo">
+					<table id="fileInfoTable">
+						<tbody>
+							<tr>
+								<th scope="row">Input file</th>
+								<td id="info-inputFileName"></td>
+							</tr>
+							<tr>
+								<th scope="row">Input file size</th>
+								<td id="info-inputFileSize"></td>
+							</tr>
+							<tr>
+								<th scope="row">Buildings</th>
+								<td id="info-buildingCount"></td>
+							</tr>
+							<tr>
+								<th scope="row">Triangles</th>
+								<td id="info-triangleCount"></td>
+							</tr>
+							<tr>
+								<th scope="row">Bounding box X</th>
+								<td id="info-bbox-x"></td>
+							</tr>
+							<tr>
+								<th scope="row">Bounding box Y</th>
+								<td id="info-bbox-y"></td>
+							</tr>
+							<tr>
+								<th scope="row">Bounding box Z</th>
+								<td id="info-bbox-z"></td>
+							</tr>
+							<tr>
+								<th scope="row">Span X</th>
+								<td id="info-span-x"></td>
+							</tr>
+							<tr>
+								<th scope="row">Span Y</th>
+								<td id="info-span-y"></td>
+							</tr>
+							<tr>
+								<th scope="row">Span Z</th>
+								<td id="info-span-z"></td>
+							</tr>
+						</tbody>
+					</table>
 				</div>
 				<div id="toolsContainer">
+					<div id="settings">
+						<form id="settingsForm">
+							<h2>Export settings</h2>
+							<fieldset class="radio">
+								<legend>Output coordinates</legend>
+								<label for="output-coords-keep">
+									<input type="radio" id="output-coords-keep" value="output-coords-keep" name="output-coords" checked>
+									Keep original
+								</label>
+								<label for="output-coords-unit">
+									<input type="radio" id="output-coords-unit" value="output-coords-unit" name="output-coords">
+									Scale between 0 and 1
+								</label>
+								<label for="output-coords-to-origin">
+									<input type="radio" id="output-coords-to-origin" value="output-coords-to-origin" name="output-coords">
+									Move corner to 0, 0
+								</label>
+								<label for="output-coords-to-nearest-km">
+									<input type="radio" id="output-coords-to-nearest-km" value="output-coords-to-nearest-km" name="output-coords">
+									Same, but snap to kilometer grid
+								</label>
+							</fieldset>
+						</form>
+					</div>
 					<button id="generateStlButton">Generate STL</button>
 				</div>
-			</div>
-			<div id="canvasContainer">
+				<footer>
+					<p>By <a rel="author" target="_blank" href="http://draemm.li">Roland Rytz</a></p>
+					<p>Source under the <a target="_blank" rel="license" href="./LICENSE">AGPL v3</a> on <a target="_blank" href="https://github.com/RolandR/SwisstopoGMLto3D">GitHub</a></p>
+				</footer>
+			</section>
+			<section id="canvasContainer">
 				
-			</div>
+			</section>
 		</main>
 	</body>
 	<script type="text/javascript" src="./js/progressMonitor.js"></script>

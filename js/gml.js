@@ -297,6 +297,33 @@ function GmlParser(){
 			
 		}
 		
+		document.getElementById("info-inputFileName").innerHTML = file.name;
+		
+		const k = 1024;
+		const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
+		const decimal = 2;
+		const n = Math.floor(Math.log(file.size) / Math.log(k));
+		const fileSize = parseFloat((file.size / Math.pow(k, n)).toFixed(decimal))+" "+sizes[n];
+		
+		document.getElementById("info-inputFileSize").innerHTML = fileSize;
+		
+		document.getElementById("info-buildingCount").innerHTML = structure.buildings.length;
+		
+		const triangleCount = structure.buildings.reduce(function(accumulator, building){
+			return accumulator + building.roofTriangles.length + building.wallTriangles.length + building.groundTriangles.length;
+		}, 0);
+		
+		document.getElementById("info-triangleCount").innerHTML = triangleCount;
+		
+		document.getElementById("info-bbox-x").innerHTML = structure.lowerCorner[0] + "<br>" + structure.upperCorner[0];
+		document.getElementById("info-bbox-y").innerHTML = structure.lowerCorner[1] + "<br>" + structure.upperCorner[1];
+		document.getElementById("info-bbox-z").innerHTML = structure.lowerCorner[2] + "<br>" + structure.upperCorner[2];
+		
+		document.getElementById("info-span-x").innerHTML = Math.round(structure.spans[0]*100)/100 + " m";
+		document.getElementById("info-span-y").innerHTML = Math.round(structure.spans[1]*100)/100 + " m";
+		document.getElementById("info-span-z").innerHTML = Math.round(structure.spans[2]*100)/100 + " m";
+		
+		
 		return structure;
 	}
 	
@@ -309,16 +336,45 @@ function GmlParser(){
 			triangles.push(...building.groundTriangles);
 		}
 		
-		let scale = Math.max(structure.spans[0], structure.spans[1], structure.spans[2]);
-		console.log("Scale: 1/"+scale);
-		scale = 1/scale;
+		// output-coords-keep
+		// output-coords-unit
+		// output-coords-to-origin
+		// output-coords-to-nearest-km
+		let transformSettings = document.getElementById("settingsForm").elements["output-coords"].value;
+		
+		let scale = 1;
+		if(transformSettings == "output-coords-unit"){
+			scale = Math.max(structure.spans[0], structure.spans[1], structure.spans[2]);
+			console.log("Scale: 1:"+scale);
+			scale = 1/scale;
+		} else {
+			console.log("Scale: 1:1");
+		}
+		
+		let translateX = 0;
+		let translateY = 0;
+		let translateZ = 0;
+		
+		if( transformSettings == "output-coords-unit"){
+			translateX = 0-structure.lowerCorner[0];
+			translateY = 0-structure.lowerCorner[1];
+			translateZ = 0-structure.lowerCorner[2];
+		} else if( transformSettings == "output-coords-to-origin"){
+			translateX = 0-structure.lowerCorner[0];
+			translateY = 0-structure.lowerCorner[1];
+		} else if( transformSettings == "output-coords-to-nearest-km"){
+			translateX = 0-Math.round(structure.lowerCorner[0]/1000)*1000;
+			translateY = 0-Math.round(structure.lowerCorner[1]/1000)*1000;
+			
+			console.log("Translating by "+translateX+", "+translateY);
+		}
 		
 		
 		for(let t in triangles){
 			for(let i = 0; i < triangles[t].length; i+=3){
-				triangles[t][i+0] = (triangles[t][i+0] - structure.lowerCorner[0])*scale;
-				triangles[t][i+1] = (triangles[t][i+1] - structure.lowerCorner[1])*scale;
-				triangles[t][i+2] = (triangles[t][i+2] - structure.lowerCorner[2])*scale;
+				triangles[t][i+0] = (triangles[t][i+0] + translateX)*scale;
+				triangles[t][i+1] = (triangles[t][i+1] + translateY)*scale;
+				triangles[t][i+2] = (triangles[t][i+2] + translateZ)*scale;
 			}
 		}
 		
@@ -402,7 +458,7 @@ function Renderer(canvasContainer){
 	
 	let smallerSize = Math.min(canvas.width, canvas.height);
 	
-	context.fillStyle = "#0f0";
+	context.fillStyle = "#fa0";
 	
 	
 	function drawBuildings(structure){

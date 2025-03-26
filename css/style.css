@@ -23,43 +23,54 @@ main{
 	height: 100%;
 }
 
-#upperHalf{
-	flex-basis: 60%;
-	display: flex;
-	box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.5);
-	overflow: hidden;
+a{
+	color: #fa0;
+	text-decoration: none;
 }
 
-#lowerHalf{
-	flex-basis: 40%;
-	display: flex;
-	flex-direction: row;
-	align-items: stretch;
-	overflow-y: hidden;
+a:hover{
+	text-decoration: underline;
 }
 
-#lowerHalf > *{
-	overflow-y: auto;
+header>p{
+	margin: 0px 10px;
+	font-size: 16px;
+	line-height: 1.25em;
 }
 
-#largestMeshes{
+#toolsContainer{
 	flex: 1;
-	padding: 20px;
 }
 
-#largestMeshes table{
+footer{
+	width: 100%;
+}
+
+#fileInfo{
+	margin-top: 20px;
+	width: 100%;
+	color: #aaa;
+}
+
+#fileInfo:hover{
+	color: #fff;
+}
+
+#fileInfoTable{
 	border-collapse: collapse;
+	width: 100%;
+	font-size: 16px;
 }
 
-#largestMeshes td, th{
+#fileInfoTable td, th{
 	padding: 3px 10px;
 }
 
-#largestMeshes tbody>tr:nth-child(odd){
+#fileInfoTable tbody>tr:nth-child(odd){
 	background-color: rgba(255, 255, 255, 0.1);
 }
 
-#largestMeshes caption>h2{
+#fileInfoTable caption>h2{
 	text-align: left;
 	margin-bottom: 5px;
 }
@@ -72,30 +83,47 @@ td.number, th.number{
 	text-align: right;
 }
 
-#materials{
-	flex: 1;
-	padding: 20px;
+#toolsContainer{
+	margin-top: 20px;
+	width: 100%;
 }
 
-.materialProperties{
-	display: flex;
-	flex-direction: row;
-	color: #999;
+#settings{
+	width: 100%;
 }
 
-.materialProperties>div{
-	flex: 1;
+fieldset.radio{
+	width: 100%;
+	border: 1px #555 solid;
+	padding: 4px 9px 7px 9px;
 }
 
-.colorSwab{
-	image-rendering: pixelated;
+fieldset.radio>legend{
+	padding: 0px 3px;
+	font-size: 15px;
 }
 
-.material{
-	border: 1px rgba(255, 255, 255, 0.1) solid;
-	margin: 5px;
-	padding: 5px;
-	border-radius: 5px;
+fieldset.radio label{
+	display: block;
+	margin: 5px 3px;
+}
+
+input[type="radio"]{
+	appearance: none;
+	width: 15px;
+	height: 15px;
+	border: 1px #666 solid;
+	border-radius: 16px;
+	background-color: #222;
+	cursor: pointer;
+	position: relative;
+	top: 2px;
+}
+
+input[type="radio"]:checked{
+	background-color: #fa0;
+	padding: 2px;
+	background-clip: content-box;
 }
 
 #menu{
@@ -166,13 +194,6 @@ button:active, #downloadButton:active .uploadLabel:active{
 	display: none;
 }
 
-#enableRenderingButton{
-	position: absolute;
-	top: calc(50% - 20px);
-	left: calc(50% - 100px);
-	display: none;
-}
-
 #downloadButton.fresh{
 	box-shadow: 0px 0px 50px rgba(255, 200, 0, 0.5);
 }
@@ -196,69 +217,6 @@ button:active, #downloadButton:active .uploadLabel:active{
 	flex-shrink: 1;
 	overflow-y: auto;
 }
-
-#cameraZInput, #offsetYInput{
-	position: absolute;
-	width: 100%;
-	top: 30px;
-}
-
-#offsetYInput{
-	top: 60px;
-}
-
-/*#structureContainer{
-	padding-top: 40px;
-}
-
-.info{
-	border: 1px #000 solid;
-	margin: 5px 10px;
-	background-image: linear-gradient(to bottom, rgba(20, 60, 20, 0.4), rgba(0, 40, 0, 0.4));
-	padding: 5px;
-}
-
-.sceneInfo, .nodeInfo{
-	background-image: linear-gradient(to bottom, rgba(60, 60, 20, 0.4), rgba(40, 40, 0, 0.4));
-}
-
-.nodeInfo{
-	margin: 2px 10px;
-	padding: 2px 5px;
-	line-height: 1.3em;
-}
-
-.meshInfo, .primitiveInfo{
-	background-image: linear-gradient(to bottom, rgba(60, 20, 60, 0.4), rgba(40, 0, 40, 0.4));
-}
-
-.primitiveInfo{
-	margin: 2px 10px;
-	padding: 2px 5px;
-	line-height: 1.3em;
-}
-
-h2{
-	font-size: 20px;
-}
-
-h3{
-	font-size: 14px;
-}*/
-
-#frameCounter{
-	position: absolute;
-	bottom: 0px;
-	right: 0px;
-	width: 300px;
-	font-size: 40px;
-	color: #0f0;
-	font-family: monospace;
-	text-align: right;
-	text-shadow: #000 3px 3px;
-	margin: 20px;
-}
-
 
 /* =========== Progress Monitor ============= */
 
