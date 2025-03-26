@@ -170,10 +170,10 @@ function GmlParser(){
 		
 		await pMon.postMessage("Parsing XML...");
 		
-		//const doc = await parseXML(text);
+		const doc = await parseXML(text);
 		
-		const parser = new DOMParser();
-		const doc = await parser.parseFromString(text, "text/xml");
+		//const parser = new DOMParser();
+		//const doc = await parser.parseFromString(text, "text/xml");
 		
 		await pMon.updateProgress(1);
 		await pMon.finishItem();
