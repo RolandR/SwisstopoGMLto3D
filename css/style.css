@@ -185,7 +185,7 @@ button, #generateButton, #downloadButton, .uploadLabel{
 	background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.3));
 	background-color: #111;
 	color: #fff;
-	text-shadow: 1px 1px 0px #000;
+	text-shadow: 1px 1px 3px #000, 1px 1px 0px #000;
 	border-radius: 5px;
 	cursor: pointer;
 	text-decoration: none;
