@@ -16,7 +16,7 @@ function main(){
 	const renderer = new Renderer(canvasContainer);
 	
 	const toolsContainer = document.getElementById("toolsContainer");
-	const generateStlButton = document.getElementById("generateStlButton");
+	const generateButton = document.getElementById("generateButton");
 	const fileInput = document.getElementById("fileUpload");
 	const fileInputLabel = document.getElementById("fileUploadButton");
 	
@@ -32,22 +32,38 @@ function main(){
 				pMon.finish(0, 500);
 			});
 			
-			generateStlButton.onclick = function(){
-				let stl = parser.generateStl(structure);
+			generateButton.onclick = function(){
 				
-				let blob = new Blob([stl.buffer], {type: "model/stl"});
-				let objectUrl = URL.createObjectURL(blob);
+				let outputFormat = document.getElementById("settingsForm").elements["output-format"].value;
+				
+				let outputBlob;
+				let extension = "";
+				let filetypeName = "";
+				
+				console.log(outputFormat);
+				
+				if(outputFormat == "output-format-stl"){
+					outputBlob = parser.generateStl(structure);
+					extension = ".stl";
+					filetypeName = "STL";
+				} else if(outputFormat == "output-format-gltf"){
+					outputBlob = parser.generateGlb(structure);
+					extension = ".glb";
+					filetypeName = "glTF";
+				}
+				
+				let objectUrl = URL.createObjectURL(outputBlob);
 				
 				let downloadLink = document.createElement("a");
-				downloadLink.innerHTML = "Download STL";
-				downloadLink.download = structure.filename+".stl";
+				downloadLink.innerHTML = "Download "+filetypeName;
+				downloadLink.download = structure.filename+extension;
 				downloadLink.href = objectUrl;
 				downloadLink.id = "downloadButton";
 				
-				generateStlButton.style.display = "none";
+				generateButton.style.display = "none";
 				toolsContainer.appendChild(downloadLink);
 			};
-			generateStlButton.style.display = "block";
+			generateButton.style.display = "block";
 		});
 	}
 }
@@ -327,6 +343,414 @@ function GmlParser(){
 		return structure;
 	}
 	
+	function generateGlb(structure){
+		
+		const includeRoofs = document.getElementById("output-include-roofs").checked;
+		const includeWalls = document.getElementById("output-include-walls").checked;
+		const includeGround = document.getElementById("output-include-ground").checked;
+		
+		const transformSettings = document.getElementById("settingsForm").elements["output-coords"].value;
+		
+		let scale = 1;
+		if(transformSettings == "output-coords-unit"){
+			scale = Math.max(structure.spans[0], structure.spans[1], structure.spans[2]);
+			console.log("Scale: 1:"+scale);
+			scale = 1/scale;
+		} else {
+			console.log("Scale: 1:1");
+		}
+		
+		let translate = {
+			x: 0,
+			y: 0,
+			z: 0,
+		};
+		
+		if( transformSettings == "output-coords-unit"){
+			translate.x = 0-structure.lowerCorner[0];
+			translate.y = 0-structure.lowerCorner[1];
+			translate.z = 0-structure.lowerCorner[2];
+		} else if( transformSettings == "output-coords-to-origin"){
+			translate.x = 0-structure.lowerCorner[0];
+			translate.y = 0-structure.lowerCorner[1];
+		} else if( transformSettings == "output-coords-to-nearest-km"){
+			translate.x = 0-Math.round(structure.lowerCorner[0]/1000)*1000;
+			translate.y = 0-Math.round(structure.lowerCorner[1]/1000)*1000;
+		}
+		
+		console.log("Translating by "+translate.x+", "+translate.y+", "+translate.z);
+		
+		
+		
+		const glb = {
+			asset: {
+				generator: "CityGML converter by Roland Rytz",
+				version: "2.0",
+			},
+			scene: 0,
+			scenes:[
+				{
+					name: structure.filename,
+					nodes: [],
+				},
+			],
+			nodes: [],
+			materials: [],
+			meshes: [],
+			accessors: [],
+			bufferViews: [],
+			buffers: [],
+		};
+
+		let roofMaterialIndex = 0;
+		const roofMaterial = {
+			name: "roof",
+			doubleSided: true,
+			pbrMetallicRoughness: {
+				baseColorFactor: [0.7, 0.42, 0.29, 1],
+				metallicFactor: 0,
+				roughnessFactor: 0.9
+			},
+		};
+		let wallMaterialIndex = 0;
+		const wallMaterial = {
+			name: "wall",
+			doubleSided: true,
+			pbrMetallicRoughness: {
+				baseColorFactor: [0.91, 0.88, 0.81, 1],
+				metallicFactor: 0,
+				roughnessFactor: 0.9
+			},
+		};
+		let groundMaterialIndex = 0;
+		const groundMaterial = {
+			name: "ground",
+			doubleSided: true,
+			pbrMetallicRoughness: {
+				baseColorFactor: [0.42, 0.61, 0.16, 1],
+				metallicFactor: 0,
+				roughnessFactor: 0.9
+			},
+		};
+		
+		if(includeRoofs){
+			roofMaterialIndex = glb.materials.length;
+			glb.materials.push(roofMaterial);
+		}
+		if(includeWalls){
+			wallMaterialIndex = glb.materials.length;
+			glb.materials.push(wallMaterial);
+		}
+		if(includeGround){
+			groundMaterialIndex = glb.materials.length;
+			glb.materials.push(groundMaterial);
+		}
+		
+		let rootNode = {
+			name: structure.filename,
+			children: [],
+		};
+		
+		glb.scenes[glb.scene].nodes.push(glb.nodes.length);
+		glb.nodes.push(rootNode);
+		
+		let offset = 0;
+		let dataArrays = [];
+		
+		for(let b in structure.buildings){
+			
+			let building = structure.buildings[b];
+			
+			let node = {
+				name: building.id,
+				children: [],
+			};
+			
+			let buildingNodeId = glb.nodes.length;
+			glb.nodes.push(node);
+			rootNode.children.push(buildingNodeId);
+			
+			if(includeRoofs && building.roofTriangles.length > 0){
+				let meshResult = addMesh(glb, building.roofTriangles, offset, "roof_"+building.id, roofMaterialIndex, translate, scale);
+				
+				offset = meshResult.offset;
+				dataArrays.push(...meshResult.dataArrays);
+				
+				let node = {
+					name: "roof_"+building.id,
+					mesh: meshResult.meshIndex,
+				};
+				glb.nodes.push(node);
+				glb.nodes[buildingNodeId].children.push(glb.nodes.length-1);
+			}
+			
+			if(includeWalls && building.wallTriangles.length > 0){
+				let meshResult = addMesh(glb, building.wallTriangles, offset, "wall_"+building.id, wallMaterialIndex, translate, scale);
+				
+				offset = meshResult.offset;
+				dataArrays.push(...meshResult.dataArrays);
+				
+				let node = {
+					name: "wall_"+building.id,
+					mesh: meshResult.meshIndex,
+				};
+				glb.nodes.push(node);
+				glb.nodes[buildingNodeId].children.push(glb.nodes.length-1);
+			}
+			
+			if(includeGround && building.groundTriangles.length > 0){
+				let meshResult = addMesh(glb, building.groundTriangles, offset, "ground_"+building.id, groundMaterialIndex, translate, scale);
+				
+				offset = meshResult.offset;
+				dataArrays.push(...meshResult.dataArrays);
+				
+				let node = {
+					name: "ground_"+building.id,
+					mesh: meshResult.meshIndex,
+				};
+				glb.nodes.push(node);
+				glb.nodes[buildingNodeId].children.push(glb.nodes.length-1);
+			}
+			
+		}
+		
+		let bufferLength = offset;
+		
+		glb.buffers[0] = {
+			byteLength: bufferLength
+		};
+		
+		/*======== create buffer ========*/
+		
+		let jsonString = JSON.stringify(glb);
+		
+		const encoder = new TextEncoder();
+		let encodedText = encoder.encode(jsonString);
+		
+		if(encodedText.byteLength%4 !== 0){
+			// the gltf standard wants the length of a every chunk to be a multiple of 4 bytes.
+			// let's add spaces to the json string to comply with that.
+			
+			let missingSpaces = 4-encodedText.byteLength%4;
+			let spaces = " ".repeat(missingSpaces);
+			jsonString += spaces;
+			encodedText = encoder.encode(jsonString);
+		}
+		
+		let fileLength = 12 + 8 + encodedText.length + 8 + bufferLength;
+		
+		let fileHeader = new Uint32Array(3);
+		fileHeader[0] = 0x46546C67;
+		fileHeader[1] = 2;
+		fileHeader[2] = fileLength;
+		
+		let jsonHeader = new Uint32Array(2);
+		jsonHeader[0] = encodedText.length;
+		jsonHeader[1] = 0x4E4F534A;
+		
+		let bufferHeader = new Uint32Array(2);
+		bufferHeader[0] = bufferLength;
+		bufferHeader[1] = 0x004E4942;
+		
+		let fileBlob = new Blob([
+			fileHeader,
+			jsonHeader,
+			encodedText,
+			bufferHeader,
+			...dataArrays
+		], {type: "model/glb"});
+		
+		console.log(glb);
+		
+		return(fileBlob);
+		
+	}
+	
+	function createBuffersFromTriangles(triangles, translate, scale){
+		let indices = [];
+		let positions = [];
+		let normals = [];
+		
+		let max = [
+			-Infinity,
+			-Infinity,
+			-Infinity,
+		];
+		
+		let min = [
+			Infinity,
+			Infinity,
+			Infinity,
+		];
+		
+		for(let i in triangles){
+			let triangle = triangles[i];
+			
+			for(let i = 0; i < triangle.length; i+=3){
+				let x = (triangle[i+0] + translate.x)*scale;
+				let y = (triangle[i+1] + translate.y)*scale;
+				let z = (triangle[i+2] + translate.z)*scale;
+				
+				triangle[i+0] = x;
+				triangle[i+1] = z;
+				triangle[i+2] = -y;
+			}
+			
+			let normal = calculateNormalFromTriangle(triangle); // TODO: point normals the other way
+			
+			if(normal[0] == 0 && normal[1] == 0 && normal[2] == 0){
+				// degenerate triangle, skip
+				console.log("discarded degenerate triangle");
+			} else {
+				
+				for(let i = 0; i < triangle.length; i+=3){
+					max[0] = Math.max(max[0], triangle[i+0]);
+					max[1] = Math.max(max[1], triangle[i+1]);
+					max[2] = Math.max(max[2], triangle[i+2]);
+					
+					min[0] = Math.min(min[0], triangle[i+0]);
+					min[1] = Math.min(min[1], triangle[i+1]);
+					min[2] = Math.min(min[2], triangle[i+2]);
+				}
+				
+				indices.push(positions.length/3, positions.length/3+1, positions.length/3+2);
+				positions.push(...triangle);
+				normals.push(
+					normal[0], normal[1], normal[2],
+					normal[0], normal[1], normal[2],
+					normal[0], normal[1], normal[2],
+				);
+			
+			}
+		}
+		
+		indices = new Uint16Array(indices);
+		positions = new Float32Array(positions);
+		normals = new Float32Array(normals);
+		
+		return {
+			indices: indices,
+			positions: positions,
+			normals: normals,
+			max: max,
+			min: min,
+		};
+	}
+	
+	function addMesh(glb, triangles, offset, name, materialIndex, translate, scale){
+		
+		let buffers = createBuffersFromTriangles(triangles, translate, scale);
+		
+		//console.log(buffers.indices.length, buffers.positions.length, buffers.normals.length);
+		
+		let outMesh = {
+			name: name,
+			primitives: [],
+		};
+			
+		outMesh.primitives[0] = {
+			attributes: {},
+		};
+		
+		let dataArrays = [];
+		let buf;
+		
+		/*======== indices ========*/
+		buf = buffers.indices;
+		dataArrays.push(buf);
+		
+		glb.bufferViews.push({
+			buffer: 0,
+			byteLength: buf.byteLength,
+			byteOffset: offset,
+			target: 34963 // indices (ELEMENT_ARRAY_BUFFER)
+		});
+		offset += buf.byteLength;
+		if(offset%4 !== 0){
+			// the gltf standard wants every bufferView offset to be a multiple of 4 bytes.
+			// let's add empty bytes between dataArrays to comply with that.
+			dataArrays.push(new Uint8Array(4-offset%4));
+			offset += 4-offset%4;
+		}
+		
+		glb.accessors.push({
+			bufferView: glb.bufferViews.length-1,
+			byteOffset: 0,
+			type: "SCALAR",
+			componentType: 5123, // 5123 = Uint16
+			count: buf.length
+		});
+		outMesh.primitives[0].indices = glb.accessors.length-1;
+		
+		/*======== positions ========*/
+		buf = buffers.positions;
+		dataArrays.push(buf);
+		
+		glb.bufferViews.push({
+			buffer: 0,
+			byteLength: buf.byteLength,
+			byteOffset: offset,
+			target: 34962 // positions (ARRAY_BUFFER)
+		});
+		offset += buf.byteLength;
+		if(offset%4 !== 0){
+			// the gltf standard wants every bufferView offset to be a multiple of 4 bytes.
+			// let's add empty bytes between dataArrays to comply with that.
+			dataArrays.push(new Uint8Array(4-offset%4));
+			offset += 4-offset%4;
+		}
+		
+		glb.accessors.push({
+			bufferView: glb.bufferViews.length-1,
+			byteOffset: 0,
+			type: "VEC3",
+			componentType: 5126,
+			count: buf.length/3,
+			min: buffers.min,
+			max: buffers.max
+		});
+		outMesh.primitives[0].attributes.POSITION = glb.accessors.length-1;
+		
+		/*======== normals ========*/
+		buf = buffers.normals;
+		dataArrays.push(buf);
+		
+		glb.bufferViews.push({
+			buffer: 0,
+			byteLength: buf.byteLength,
+			byteOffset: offset,
+			target: 34962 // positions (ARRAY_BUFFER)
+		});
+		offset += buf.byteLength;
+		if(offset%4 !== 0){
+			// the gltf standard wants every bufferView offset to be a multiple of 4 bytes.
+			// let's add empty bytes between dataArrays to comply with that.
+			dataArrays.push(new Uint8Array(4-offset%4));
+			offset += 4-offset%4;
+		}
+		
+		glb.accessors.push({
+			bufferView: glb.bufferViews.length-1,
+			byteOffset: 0,
+			type: "VEC3",
+			componentType: 5126,
+			count: buf.length/3
+		});
+		outMesh.primitives[0].attributes.NORMAL = glb.accessors.length-1;
+		
+		outMesh.primitives[0].material = materialIndex;
+		
+		glb.meshes.push(outMesh);
+		
+		return {
+			meshIndex: glb.meshes.length-1,
+			dataArrays: dataArrays,
+			offset: offset,
+		};
+		
+		
+	}
+	
 	function generateStl(structure){
 		let triangles = [];
 		
@@ -435,7 +859,9 @@ function GmlParser(){
 		console.log("byteOffset: "+byteOffset);
 		console.log("calculated: "+numTriangles+" Triangles, "+sizeBytes+" Bytes");
 		
-		return view;
+		let blob = new Blob([view.buffer], {type: "model/stl"});
+		
+		return blob;
 		
 	}
 	
@@ -443,6 +869,7 @@ function GmlParser(){
 		loadFile: loadFile,
 		parseGmlFile: parseGmlFile,
 		generateStl: generateStl,
+		generateGlb: generateGlb,
 	};
 }
 

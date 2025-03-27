@@ -65,7 +65,7 @@
 				<div id="toolsContainer">
 					<div id="settings">
 						<form id="settingsForm">
-							<h2>Export settings</h2>
+							<h2>Export</h2>
 							<fieldset class="radio">
 								<legend>Output coordinates</legend>
 								<label for="output-coords-keep">
@@ -85,9 +85,35 @@
 									Same, but snap to kilometer grid
 								</label>
 							</fieldset>
+							<fieldset class="radio">
+								<legend>Output format</legend>
+								<label for="output-format-gltf" title="Export as .glb, the binary format of glTF, which supports different materials, separate models per file, and more.">
+									<input type="radio" id="output-format-gltf" value="output-format-gltf" name="output-format" checked>
+									glTF (.glb)
+								</label>
+								<label for="output-format-stl" title="Export as .stl, A simple 3D format commonly used for 3D printing. Doesn't support textures or separate models within a file.">
+									<input type="radio" id="output-format-stl" value="output-format-stl" name="output-format">
+									STL
+								</label>
+							</fieldset>
+							<fieldset class="radio">
+								<legend>Include parts</legend>
+								<label for="output-include-roofs">
+									<input type="checkbox" id="output-include-roofs" value="output-include-roofs" checked>
+									Roofs
+								</label>
+								<label for="output-include-walls">
+									<input type="checkbox" id="output-include-walls" value="output-include-walls" checked>
+									Walls
+								</label>
+								<label for="output-include-ground">
+									<input type="checkbox" id="output-include-ground" value="output-include-ground" checked>
+									Ground
+								</label>
+							</fieldset>
 						</form>
 					</div>
-					<button id="generateStlButton">Generate STL</button>
+					<button id="generateButton">Generate file</button>
 				</div>
 				<footer>
 					<p>By <a rel="author" target="_blank" href="http://draemm.li">Roland Rytz</a></p>
@@ -99,6 +125,8 @@
 			</section>
 		</main>
 	</body>
+	<script type="text/javascript" src="./js/matrix.js"></script>
 	<script type="text/javascript" src="./js/progressMonitor.js"></script>
+	<script type="text/javascript" src="./js/gltf.js"></script>
 	<script type="text/javascript" src="./js/gml.js"></script>
 </html>

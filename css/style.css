@@ -92,6 +92,10 @@ td.number, th.number{
 	width: 100%;
 }
 
+#settings fieldset{
+	margin-bottom: 5px;
+}
+
 fieldset.radio{
 	width: 100%;
 	border: 1px #555 solid;
@@ -121,6 +125,23 @@ input[type="radio"]{
 }
 
 input[type="radio"]:checked{
+	background-color: #fa0;
+	padding: 2px;
+	background-clip: content-box;
+}
+
+input[type="checkbox"]{
+	appearance: none;
+	width: 15px;
+	height: 15px;
+	border: 1px #666 solid;
+	background-color: #222;
+	cursor: pointer;
+	position: relative;
+	top: 3px;
+}
+
+input[type="checkbox"]:checked{
 	background-color: #fa0;
 	padding: 2px;
 	background-clip: content-box;
@@ -157,7 +178,7 @@ h2{
 	margin-bottom: 20px;
 }
 
-button, #downloadButton, .uploadLabel{
+button, #generateButton, #downloadButton, .uploadLabel{
 	border: 1px #000 solid;
 	display: block;
 	text-align: center;
@@ -171,27 +192,27 @@ button, #downloadButton, .uploadLabel{
 	margin-top: 15px;
 }
 
-button:hover, #downloadButton:hover, .uploadLabel:hover{
+button:hover, #generateButton:hover, #downloadButton:hover, .uploadLabel:hover{
 	background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.1));
 }
 
-button:active, #downloadButton:active .uploadLabel:active{
+button:active, #generateButton:active, #downloadButton:active .uploadLabel:active{
 	background-image: linear-gradient(to top, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.1));
 }
 
-#generateStlButton, #fileUploadButton, #downloadButton, #enableRenderingButton{
+#generateButton, #fileUploadButton, #downloadButton, #enableRenderingButton{
 	width: 200px;
 	height: 40px;
 	font-size: 20px;
 	line-height: 37px;
 }
 
-#fileUploadButton, #downloadButton, #enableRenderingButton, #processFileButton{
+#fileUploadButton, #generateButton, #downloadButton, #enableRenderingButton, #processFileButton{
 	background-color: #fa0;
 }
 
-#generateStlButton{
-	display: none;
+#generateButton{
+	/*display: none;*/
 }
 
 #downloadButton.fresh{
